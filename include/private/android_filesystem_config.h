@@ -77,7 +77,7 @@
 #define AID_NET_BW_ACCT   3007  /* change bandwidth statistics accounting */
 #define AID_QCOM_ONCRPC   3008  /* can read/write /dev/oncrpc files */
 
-#if defined(MOTOROLA_UIDS)
+#ifdef USE_MOTOROLA_USERS
 #define AID_MOT_OSH       5000  /* OSH */
 #define AID_MOT_ACCY      9000  /* access to accessory */
 #define AID_MOT_PWRIC     9001  /* power IC */
@@ -90,8 +90,8 @@
 #define AID_MOT_SECCLKD   9008  /* mot_secclkd */
 #define AID_MOT_WHISPER   9009  /* Whisper Protocol access */
 #define AID_MOT_CAIF      9010  /* can create CAIF sockets */
-#define AID_MOT_DLNA      9011  /* DLNA native */
-#endif // MOTOROLA_UIDS
+#define AID_MOT_DLNA      9011  /*DLNA native */
+#endif
 
 #define AID_MISC          9998  /* access to misc storage */
 #define AID_NOBODY        9999
@@ -142,6 +142,21 @@ static const struct android_id_info android_ids[] = {
     { "net_admin", AID_NET_ADMIN, },
     { "net_bw_stats", AID_NET_BW_STATS, },
     { "net_bw_acct", AID_NET_BW_ACCT, },
+//#ifdef USE_MOTOROLA_USERS
+    { "mot_osh",   AID_MOT_OSH, },
+    { "mot_accy",  AID_MOT_ACCY, },
+    { "mot_pwric", AID_MOT_PWRIC, },
+    { "mot_usb",   AID_MOT_USB, },
+    { "mot_drm",   AID_MOT_DRM, },
+    { "mot_tcmd",  AID_MOT_TCMD, },
+    { "mot_sec_rtc",  AID_MOT_SEC_RTC, },
+    { "mot_tombstone", AID_MOT_TOMBSTONE, },
+    { "mot_tpapi",  AID_MOT_TPAPI, },
+    { "mot_secclkd",  AID_MOT_SECCLKD, },
+    { "mot_whisper",  AID_MOT_WHISPER, },
+    { "mot_caif",     AID_MOT_CAIF, },
+    { "mot_dlna",     AID_MOT_DLNA,},
+//#endif
     { "qcom_oncrpc", AID_QCOM_ONCRPC, },
 #if defined(MOTOROLA_UIDS)
     { "mot_osh",   AID_MOT_OSH, },
@@ -178,6 +193,38 @@ struct fs_path_config {
 ** way up to the root.
 */
 
+//#ifdef USE_MOTOROLA_USERS
+static struct fs_path_config android_dirs[] = {
+    { 00770, AID_SYSTEM, AID_CACHE,  "cache" },
+    { 00777, AID_SYSTEM, AID_SYSTEM, "data/anr" },
+    { 00771, AID_SYSTEM, AID_SYSTEM, "data/app" },
+    { 00771, AID_SYSTEM, AID_SYSTEM, "data/app-private" },
+    { 00771, AID_SYSTEM, AID_SYSTEM, "data/dalvik-cache" },
+    { 00771, AID_SYSTEM, AID_SYSTEM, "data/data" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/12m/batch" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/12m" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/tmp" },
+    { 00771, AID_SHELL,  AID_SHELL,  "data/local" },
+    { 01771, AID_SYSTEM, AID_MISC,   "data/misc" },
+    { 00770, AID_DHCP,   AID_DHCP,   "data/misc/dhcp" },
+    { 00775, AID_SYSTEM, AID_SYSTEM, "data/tombstones" },
+    { 00777, AID_SYSTEM, AID_SYSTEM, "data/touchpad" },
+    { 00775, AID_MEDIA_RW, AID_MEDIA_RW, "data/media" },
+    { 00775, AID_MEDIA_RW, AID_MEDIA_RW, "data/media/Music" },
+    { 00771, AID_SYSTEM, AID_SYSTEM, "data" },
+    { 00750, AID_ROOT,   AID_SHELL,  "sbin" },
+    { 00755, AID_ROOT,   AID_SHELL,  "system/bin" },
+    { 00755, AID_ROOT,   AID_SHELL,  "system/vendor" },
+    { 00755, AID_ROOT,   AID_SHELL,  "system/xbin" },
+    { 00755, AID_ROOT,   AID_ROOT,   "system/usr/bin" },
+    { 00755, AID_ROOT,   AID_ROOT,   "system/etc/ppp" },
+    { 00775, AID_ROOT,   AID_ROOT,   "system/etc/touchpad" },
+    { 00777, AID_ROOT,   AID_ROOT,   "sdcard" },
+    { 00770, AID_RADIO,  AID_LOG,    "data/logger" },
+    { 00755, AID_ROOT,   AID_ROOT,   0 },
+};
+//#else
+/*
 static struct fs_path_config android_dirs[] = {
     { 00770, AID_SYSTEM, AID_CACHE,  "cache" },
     { 00771, AID_SYSTEM, AID_SYSTEM, "data/app" },
@@ -200,6 +247,8 @@ static struct fs_path_config android_dirs[] = {
     { 00777, AID_ROOT,   AID_ROOT,   "sdcard" },
     { 00755, AID_ROOT,   AID_ROOT,   0 },
 };
+*/
+//#endif
 
 /* Rules for files.
 ** These rules are applied based on "first match", so they
@@ -214,6 +263,9 @@ static struct fs_path_config android_files[] = {
     { 00550, AID_ROOT,      AID_SHELL,     "system/etc/init.ril" },
     { 00550, AID_ROOT,      AID_SHELL,     "system/etc/init.testmenu" },
     { 00550, AID_DHCP,      AID_SHELL,     "system/etc/dhcpcd/dhcpcd-run-hooks" },
+//#ifdef USE_MOTOROLA_USERS
+    { 00755, AID_ROOT,      AID_SHELL,     "system/etc/12m_files_copy.sh" },
+//#endif
     { 00440, AID_BLUETOOTH, AID_BLUETOOTH, "system/etc/dbus.conf" },
     { 00440, AID_BLUETOOTH, AID_BLUETOOTH, "system/etc/bluetooth/main.conf" },
     { 00440, AID_BLUETOOTH, AID_BLUETOOTH, "system/etc/bluetooth/input.conf" },
@@ -229,6 +281,10 @@ static struct fs_path_config android_files[] = {
     { 00644, AID_MEDIA_RW,  AID_MEDIA_RW,  "data/media/*" },
     { 00644, AID_SYSTEM,    AID_SYSTEM,    "data/app-private/*" },
     { 00644, AID_APP,       AID_APP,       "data/data/*" },
+//#ifdef USE_MOTOROLA_USERS
+    { 00660, AID_RADIO,     AID_RADIO,     "data/logger/bplogd.clog" },
+    { 00660, AID_RADIO,     AID_RADIO,     "data/logger/bplogd.conf" },
+//#endif
         /* the following two files are INTENTIONALLY set-gid and not set-uid.
          * Do not change. */
     { 02755, AID_ROOT,      AID_NET_RAW,   "system/bin/ping" },
@@ -243,6 +299,10 @@ static struct fs_path_config android_files[] = {
     { 04770, AID_ROOT,      AID_RADIO,     "system/bin/pppd-ril" },
 		/* the following file is INTENTIONALLY set-uid, and IS included
 		 * in user builds. */
+//#ifdef USE_MOTOROLA_USERS
+    { 00740, AID_ROOT,      AID_SYSTEM,    "system/bin/encryption_test" }, // njt784. IKSTABLETWOV-3378. BVS 33302 device encryption
+    { 00750, AID_ROOT,      AID_SHELL,     "system/etc/init.d/*" },
+//#endif
     { 06750, AID_ROOT,      AID_SHELL,     "system/bin/run-as" },
     { 06750, AID_ROOT,      AID_SYSTEM,    "system/bin/rebootcmd" },
     { 00755, AID_ROOT,      AID_SHELL,     "system/bin/*" },

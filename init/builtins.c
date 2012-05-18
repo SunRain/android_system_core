@@ -260,6 +260,13 @@ int do_insmod(int nargs, char **args)
     return do_insmod_inner(nargs, args, size);
 }
 
+#ifdef USE_MOTOROLA_CODE
+int do_import(int nargs, char **args)
+{
+    return init_parse_config_file(args[1]);
+}
+#endif
+
 int do_log(int nargs, char **args)
 {
     char* par[nargs+3];
@@ -326,6 +333,9 @@ static struct {
     const char *name;
     unsigned flag;
 } mount_flags[] = {
+#ifdef USE_MOTOROLA_CODE
+    { "move",       MS_MOVE },
+#endif
     { "noatime",    MS_NOATIME },
     { "nosuid",     MS_NOSUID },
     { "nodev",      MS_NODEV },
@@ -385,6 +395,26 @@ int do_mount(int nargs, char **args)
         }
 
         goto exit_success;
+#ifdef USE_MOTOROLA_CODE
+    } else if (!strncmp(source, "mmc@", 4)) {
+        sprintf(tmp, "/dev/block/%s", source + 4);
+
+        if (wait) {
+            wait_for_file(tmp, COMMAND_RETRY_TIMEOUT);
+            /*
+             * Seeing system doesn't guarantee we see userdata
+             * For now, we don't wait in the mount script, so
+             *    need to make sure userdata show up here
+             */
+            wait_for_file("/dev/block/userdata", COMMAND_RETRY_TIMEOUT);
+        }
+        if (mount(tmp, target, system, flags, options) < 0) {
+            ERROR("mount device (%s) to point (%s) failed", tmp, target);
+            return -1;
+        }
+
+        return 0;
+#endif
     } else if (!strncmp(source, "loop@", 5)) {
         int mode, loop, fd;
         struct loop_info info;

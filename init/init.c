@@ -53,6 +53,9 @@
 #include "ueventd.h"
 
 static int property_triggers_enabled = 0;
+#ifdef USE_MOTOROLA_CODE
+static int device_triggers_enabled = 0;
+#endif
 
 #if BOOTCHART
 static int   bootchart_count;
@@ -69,6 +72,10 @@ static char hardware[32];
 static char modelno[32];
 static unsigned revision = 0;
 static char qemu[32];
+#ifdef USE_MOTOROLA_CODE
+static char usbmode[32];
+static char memsize[32];
+#endif
 
 static struct action *cur_action = NULL;
 static struct command *cur_command = NULL;
@@ -333,6 +340,16 @@ static void service_stop_or_reset(struct service *svc, int how)
     }
 }
 
+#ifdef USE_MOTOROLA_CODE
+void device_changed(const char *name, int is_add)
+{
+    if (device_triggers_enabled) {
+        queue_device_triggers(name, is_add);
+	execute_one_command();
+    }
+}
+#endif
+
 void service_reset(struct service *svc)
 {
     service_stop_or_reset(svc, SVC_RESET);
@@ -465,6 +482,10 @@ static void import_kernel_nv(char *name, int in_qemu)
             strlcpy(battchg_pause, value, sizeof(battchg_pause));
         } else if (!strcmp(name,"androidboot.serialno")) {
             strlcpy(serialno, value, sizeof(serialno));
+#ifdef USE_MOTOROLA_CODE
+        } else if (!strcmp(name,"androidboot.usbmode")) {
+            strlcpy(usbmode, value, sizeof(usbmode));
+#endif
         } else if (!strcmp(name,"androidboot.baseband")) {
             strlcpy(baseband, value, sizeof(baseband));
         } else if (!strcmp(name,"androidboot.carrier")) {
@@ -480,6 +501,10 @@ static void import_kernel_nv(char *name, int in_qemu)
         } else if (!strcmp(name,"androidboot.modelno")) {
             strlcpy(modelno, value, sizeof(modelno));
         }
+#ifdef USE_MOTOROLA_CODE
+        } else if (!strcmp(name,"mem")) {
+            strlcpy(memsize, value, sizeof(memsize));
+#endif
      } else {
         /* in the emulator, export any kernel option with the
          * ro.kernel. prefix */
@@ -622,7 +647,21 @@ static int set_init_properties_action(int nargs, char **args)
     else
         property_set("ro.factorytest", "0");
 
+#ifdef USE_MOTOROLA_CODE
+    if (!strcmp(usbmode,"debug"))
+        property_set("ro.usb_mode", "debug");
+    else
+        property_set("ro.usb_mode", "normal");
+
+    /* Don't set ro.serialno if it wasn't passed on the command line
+     * so that the NVM daemon can do it later.
+     */
+    if(serialno[0])
+        property_set("ro.serialno", serialno);
+#else
     property_set("ro.serialno", serialno[0] ? serialno : "");
+#endif
+
     property_set("ro.bootmode", bootmode[0] ? bootmode : "unknown");
     property_set("ro.baseband", baseband[0] ? baseband : "unknown");
     property_set("ro.carrier", carrier[0] ? carrier : "unknown");
@@ -635,6 +674,14 @@ static int set_init_properties_action(int nargs, char **args)
     snprintf(tmp, PROP_VALUE_MAX, "%d", revision);
     property_set("ro.revision", tmp);
     property_set("ro.emmc",emmc_boot ? "1" : "0");
+
+#ifdef USE_MOTOROLA_CODE
+    if(strstr(memsize, "512M"))
+        property_set("ro.kernel.memsize", "512M");
+    else
+        property_set("ro.kernel.memsize", "1024M");
+#endif
+
     return 0;
 }
 
@@ -723,6 +770,10 @@ int main(int argc, char **argv)
     int property_set_fd_init = 0;
     int signal_fd_init = 0;
     int keychord_fd_init = 0;
+#ifdef USE_MOTOROLA_CODE
+    struct rlimit rlim;
+    struct rlimit rlim_new;
+#endif
 
     if (!strcmp(basename(argv[0]), "ueventd"))
         return ueventd_main(argc, argv);
@@ -734,6 +785,11 @@ int main(int argc, char **argv)
          * together in the initramdisk on / and then we'll
          * let the rc file figure out the rest.
          */
+    /* Don't repeat the setup of these filesystems,
+     * it creates double mount points with an unknown effect
+     * on the system.  This init file is for 2nd-init anyway.
+     */
+#ifndef BOARD_HAS_LOCKED_BOOTLOADER
     mkdir("/dev", 0755);
     mkdir("/proc", 0755);
     mkdir("/sys", 0755);
@@ -756,6 +812,7 @@ int main(int argc, char **argv)
          */
     open_devnull_stdio();
     klog_init();
+#endif
 
     INFO("reading config file\n");
 
@@ -795,6 +852,17 @@ int main(int argc, char **argv)
     queue_builtin_action(console_init_action, "console_init");
     queue_builtin_action(set_init_properties_action, "set_init_properties");
 
+#ifdef USE_MOTOROLA_CODE
+    /* Hongmei : Google is simplying init code, should we add this kind of code here?*/
+    if (getrlimit(RLIMIT_CORE, &rlim)==0) {
+            rlim_new.rlim_cur = rlim_new.rlim_max = RLIM_INFINITY;
+            if (setrlimit(RLIMIT_CORE, &rlim_new)!=0) {
+                 /* failed. try raising just to the old max */
+                 rlim_new.rlim_cur = rlim_new.rlim_max =  rlim.rlim_max;
+                 (void) setrlimit(RLIMIT_CORE, &rlim_new);
+             }
+    }
+#endif
     /* execute all the boot actions to get us started */
     action_for_each_trigger("init", action_add_queue_tail);
 
@@ -820,6 +888,12 @@ int main(int argc, char **argv)
         action_for_each_trigger("early-boot", action_add_queue_tail);
         action_for_each_trigger("boot", action_add_queue_tail);
     }
+
+#ifdef USE_MOTOROLA_CODE
+    queue_all_device_triggers();
+    execute_one_command();
+    device_triggers_enabled = 1;
+#endif
 
         /* run all property triggers based on current state of the properties */
     queue_builtin_action(queue_property_triggers_action, "queue_propety_triggers");

@@ -86,6 +86,9 @@ enum {
     // METADATA.
     CAMERA_MSG_PREVIEW_METADATA = 0x0400, // dataCallback
     CAMERA_MSG_BURST_IMAGE = 0x0800, // dataCallback
+#ifdef OMAP_ENHANCEMENT
+    CAMERA_MSG_COMPRESSED_BURST_IMAGE = 0x0800, //dataCallback
+#endif
     CAMERA_MSG_STATS_DATA = 0x1000, // dataCallback
     CAMERA_MSG_ALL_MSGS = 0xFFFF
 };

@@ -33,12 +33,13 @@
 #include <sys/time.h>
 #include <asm/page.h>
 #include <sys/wait.h>
-#ifdef USE_MOTOROLA_CODE
-#include <sys/poll.h>
-#endif
 
 #include <cutils/list.h>
 #include <cutils/uevent.h>
+#ifdef USE_MOTOROLA_CODE
+#include <cutils/partition_utils.h>
+#include <sys/poll.h>
+#endif
 
 #include "devices.h"
 #include "util.h"
@@ -98,6 +99,10 @@ struct platform_node {
 static list_declare(sys_perms);
 static list_declare(dev_perms);
 static list_declare(platform_names);
+#ifdef USE_MOTOROLA_CODE
+static void add_mmc_alias(char *dev_name, char *dev_alias);
+static void get_partition_alias_name(char *devname, char *alias);
+#endif
 
 int add_dev_perms(const char *name, const char *attr,
                   mode_t perm, unsigned int uid, unsigned int gid,
@@ -367,6 +372,13 @@ static char **get_character_device_symlinks(struct uevent *uevent)
         goto err;
 
     if (!strncmp(parent, "/usb", 4)) {
+#ifdef USE_MOTOROLA_CODE
+        if (!strncmp(parent, "/usbhs_omap", 11)) {
+            parent = strstr(parent + 11, "/usb");
+            if (!*parent)
+                goto err;
+        }
+#endif
         /* skip root hub name and device. use device interface */
         while (*++parent && *parent != '/');
         if (*parent)
@@ -472,18 +484,6 @@ static void handle_device(const char *action, const char *devpath,
             for (i = 0; links[i]; i++)
                 make_link(devpath, links[i]);
         }
-#ifdef USE_MOTOROLA_CODE
-        /* make Moto specific /dev/block/alias link */
-        if(!strncmp(devpath, "/dev/block", 10)) {
-            char dev_alias[ALIAS_LEN]={'\0'};
-            char *basename;
-
-            basename = strrchr(devpath, '/') + 1;
-            get_partition_alias_name(basename, dev_alias);
-            if (strlen(dev_alias))
-                add_mmc_alias(basename, dev_alias);
-        }
-#endif
     }
 
     if(!strcmp(action, "remove")) {
@@ -554,6 +554,22 @@ static void handle_block_device_event(struct uevent *uevent)
 
     handle_device(uevent->action, devpath, uevent->path, 1,
             uevent->major, uevent->minor, links);
+
+#ifdef USE_MOTOROLA_CODE
+    /* make Moto specific /dev/block/alias link */
+    if(!strcmp(uevent->action, "add")) {
+        if(!strncmp(uevent->subsystem, "block", 5)) {
+            char dev_alias[ALIAS_LEN]={'\0'};
+            char *basename;
+
+            basename = strrchr(devpath, '/') + 1;
+            get_partition_alias_name(basename, dev_alias);
+            if (strlen(dev_alias))
+                add_mmc_alias(basename, dev_alias);
+        }
+    }
+#endif
+
 }
 
 static void handle_generic_device_event(struct uevent *uevent)
@@ -712,17 +728,36 @@ static void process_firmware_event(struct uevent *uevent)
     if (l == -1)
         goto root_free_out;
 
+    /* To handle missing files right away */
     l = asprintf(&data, "%sdata", root);
     if (l == -1)
+#ifdef USE_MOTOROLA_CODE
+        { write(loading_fd, "-1", 2); /* abort transfer */
+#endif
         goto loading_free_out;
+#ifdef USE_MOTOROLA_CODE
+    }
+#endif
 
     l = asprintf(&file1, FIRMWARE_DIR1"/%s", uevent->firmware);
     if (l == -1)
+#ifdef USE_MOTOROLA_CODE
+        { write(loading_fd, "-1", 2); /* abort transfer */
+#endif
         goto data_free_out;
+#ifdef USE_MOTOROLA_CODE
+    }
+#endif
 
     l = asprintf(&file2, FIRMWARE_DIR2"/%s", uevent->firmware);
     if (l == -1)
+#ifdef USE_MOTOROLA_CODE
+        { write(loading_fd, "-1", 2); /* abort transfer */
+#endif
         goto data_free_out;
+#ifdef USE_MOTOROLA_CODE
+    }
+#endif
 
     loading_fd = open(loading, O_WRONLY);
     if(loading_fd < 0)
@@ -730,11 +765,22 @@ static void process_firmware_event(struct uevent *uevent)
 
     data_fd = open(data, O_WRONLY);
     if(data_fd < 0)
+#ifdef USE_MOTOROLA_CODE
+        { INFO("firmware: Could not open  data file\n");
+        write(loading_fd, "-1", 2); /* abort transfer */
+#endif
         goto loading_close_out;
+#ifdef USE_MOTOROLA_CODE
+    }
+#endif
 
 try_loading_again:
     fw_fd = open(file1, O_RDONLY);
     if(fw_fd < 0) {
+#ifdef USE_MOTOROLA_CODE
+        INFO("firmware: Could not open  firmware file\n");
+        write(loading_fd, "-1", 2); /* abort transfer */
+#endif
         fw_fd = open(file2, O_RDONLY);
         if (fw_fd < 0) {
             if (booting) {
@@ -804,9 +850,6 @@ static void handle_crda_event(struct uevent *uevent)
 static void handle_firmware_event(struct uevent *uevent)
 {
     pid_t pid;
-#ifdef USE_MOTOROLA_CODE
-    int status;
-#endif
     int ret;
 
     if(strcmp(uevent->subsystem, "firmware"))
@@ -820,12 +863,6 @@ static void handle_firmware_event(struct uevent *uevent)
     if (!pid) {
         process_firmware_event(uevent);
         exit(EXIT_SUCCESS);
-#ifdef USE_MOTOROLA_CODE
-    } else {
-        do {
-            ret = waitpid(pid, &status, 0);
-        } while (ret == -1 && errno == EINTR);
-#endif
     }
 }
 

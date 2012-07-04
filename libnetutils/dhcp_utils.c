@@ -33,6 +33,14 @@ static const int NAP_TIME = 200;   /* wait for 200ms at a time */
                                   /* when polling for property values */
 static const char DAEMON_NAME_RENEW[]  = "iprenew";
 static char errmsg[100];
+
+#ifdef USE_MOTOROLA_CODE
+//BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+//IKHALFMWK-192 USB Ethernet feature 35480, Motorola, e7976c, 01/13/2011
+static int autoip_enabled[3] = {0, 0, 0};//WiFi, Bluetooth, Ethernet
+//END MOT ICS UPMERGE
+#endif
+
 /* interface suffix on dhcpcd */
 #define MAX_DAEMON_SUFFIX 25
 
@@ -111,6 +119,15 @@ static int fill_ip_info(const char *interface,
             mask = mask << 1;
         }
         *prefixLength = p;
+
+#ifdef USE_MOTOROLA_CODE
+    //BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+    //Begin Motorola w20079 IKTABLETMAIN-3679 Force close on wifi browser test
+    } else {
+        *prefixLength = 0;
+    //END MOT ICS UPMERGE
+#endif
+
     }
     snprintf(prop_name, sizeof(prop_name), "%s.%s.dns1", DHCP_PROP_NAME_PREFIX, interface);
     property_get(prop_name, dns1, NULL);
@@ -124,6 +141,28 @@ static int fill_ip_info(const char *interface,
     }
     return 0;
 }
+
+#ifdef USE_MOTOROLA_CODE
+// BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+// BEGIN MOT, w20079, Jan-15-2010, IKMAPFOUR-28 / Changed for auto ip feature
+static int get_device_type(const char * interface)
+{
+    //tiwlan0 and eth0 means WiFi
+    if( strcmp(interface, "tiwlan0") == 0 || strcmp(interface, "eth0") == 0 || strncmp(interface, "wlan", 4) == 0 ) {
+        return 0;
+    } else if( strcmp(interface, "bnep0") == 0 ) {
+        return 1;
+    //BEGIN Motorola, e7976c, 01/13/2011, IKHALFMWK-192:feature 35480: Support for USB to Ethernet adaptor through Olympus HD Dock
+    } else if( strcmp(interface, "usbeth0") == 0 ) {
+        return 2;
+    //END Motorola, e7976c, 01/13/2011, IKHALFMWK-192:feature 35480
+    } else {
+        //unknow type
+        return -1;
+    }
+}
+//END MOT ICS UPMERGE
+#endif
 
 static const char *ipaddr_to_string(in_addr_t addr)
 {
@@ -176,6 +215,20 @@ int dhcp_do_request(const char *interface,
     /* Erase any previous setting of the dhcp result property */
     property_set(result_prop_name, "");
 
+#ifdef USE_MOTOROLA_CODE
+    // BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+    // Changed for auto ip feature
+    int wait_time = 30;
+    char * dhcp_param = "-ABKL";
+    int wifiorbt = get_device_type(interface);
+    if (wifiorbt < 0) return -1;
+    if( autoip_enabled[wifiorbt] ) {
+        wait_time = 90;
+        dhcp_param = "-BK";
+    }
+    //END MOT ICS UPMERGE
+#endif
+
     /* Start the daemon and wait until it's ready */
     if (property_get(HOSTNAME_PROP_NAME, prop_value, NULL) && (prop_value[0] != '\0'))
         snprintf(daemon_cmd, sizeof(daemon_cmd), "%s_%s:-h %s %s", DAEMON_NAME, daemon_suffix,
@@ -200,7 +253,15 @@ int dhcp_do_request(const char *interface,
         snprintf(errmsg, sizeof(errmsg), "%s", "DHCP result property was not set");
         return -1;
     }
+
+#ifdef USE_MOTOROLA_CODE
+    //BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+    //Changed for auto ip feature
+    if (strcmp(prop_value, "ok") == 0 || strcmp(prop_value, "limited") == 0) {
+    //END MOT ICS UPMERGE
+#else
     if (strcmp(prop_value, "ok") == 0) {
+#endif
         char dns_prop_name[PROPERTY_KEY_MAX];
         if (fill_ip_info(interface, ipaddr, gateway, prefixLength, dns1, dns2, server, lease)
                 == -1) {
@@ -285,6 +346,111 @@ int dhcp_release_lease(const char *interface)
 char *dhcp_get_errmsg() {
     return errmsg;
 }
+
+#ifdef USE_MOTOROLA_CODE
+// BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011
+int dhcp_get_state(const char *interface,
+                    in_addr_t *ipaddr,
+                    in_addr_t *gateway,
+                    in_addr_t *mask,
+                    in_addr_t *dns1,
+                    in_addr_t *dns2,
+                    in_addr_t *server,
+                    uint32_t  *lease) {
+    int result=0;
+    char result_prop_name[PROPERTY_KEY_MAX];
+    char prop_value[PROPERTY_VALUE_MAX] = "null";
+
+    snprintf(result_prop_name, sizeof(result_prop_name), "%s.%s.result",
+            DHCP_PROP_NAME_PREFIX,
+            interface);
+
+    // Changed for auto ip feature
+    int wifiorbt = get_device_type(interface);
+    if( wifiorbt < 0 ) {
+        *ipaddr=0;
+        *gateway=0;
+        *mask=0;
+        *dns1=0;
+        *dns2=0;
+        *server=0;
+        return 0;
+    }
+
+    if (!property_get(result_prop_name, prop_value, NULL)) {
+        /* shouldn't ever happen, given the success of wait_for_property() */
+        snprintf(errmsg, sizeof(errmsg), "%s", "dhcp_get_state:DHCP result property was not set");
+    }
+
+    if (strcmp(prop_value, "ok") == 0)
+        result=1;
+    else if (strcmp(prop_value, "limited") == 0)
+        result=2;
+
+    if (result) {
+        char pv_ipaddr[PROPERTY_VALUE_MAX];
+        char pv_gateway[PROPERTY_VALUE_MAX];
+        char pv_dns1[PROPERTY_VALUE_MAX];
+        char pv_dns2[PROPERTY_VALUE_MAX];
+        char pv_server[PROPERTY_VALUE_MAX];
+        char prop_name[PROPERTY_KEY_MAX];
+        char prop_value[PROPERTY_VALUE_MAX];
+        uint32_t prefixLength;
+        struct in_addr addr;
+
+        int rv = fill_ip_info(interface, pv_ipaddr, pv_gateway,
+                     &prefixLength, pv_dns1, pv_dns2, pv_server, lease);
+        if (rv != -1) {
+            *ipaddr = *gateway = *server = 0;
+            *dns1 = *dns2 = 0;
+            if (inet_aton(pv_ipaddr, &addr)) {
+                *ipaddr = addr.s_addr;
+            }
+            if (inet_aton(pv_gateway, &addr)) {
+                *gateway = addr.s_addr;
+            }
+            if (inet_aton(pv_dns1, &addr)) {
+                *dns1= addr.s_addr;
+            }
+            if (inet_aton(pv_dns2, &addr)) {
+                *dns2= addr.s_addr;
+            }
+            if (inet_aton(pv_server, &addr)) {
+                *server= addr.s_addr;
+            }
+        }
+        snprintf(prop_name, sizeof(prop_name), "%s.%s.mask", DHCP_PROP_NAME_PREFIX, interface);
+        if (property_get(prop_name, prop_value, NULL) && inet_aton(prop_value, &addr)) {
+            *mask = addr.s_addr;
+        } else {
+            *mask = 0;
+        }
+        return result;
+    }
+
+    *ipaddr=0;
+    *gateway=0;
+    *mask=0;
+    *dns1=0;
+    *dns2=0;
+    *server=0;
+
+    return 0;
+}
+
+void set_autoip(const char *interface, int value)
+{
+    value = value ? 1 : 0;
+    int wifiorbt = get_device_type(interface);
+    if( wifiorbt >= 0 ) {
+        if( autoip_enabled[wifiorbt] != value ) {
+            dhcp_stop(interface);
+            autoip_enabled[wifiorbt] = value;
+        }
+    }
+}
+// END MOT ICS UPMERGE
+#endif
 
 /**
  * Run WiMAX dhcp renew service.

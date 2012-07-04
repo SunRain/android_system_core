@@ -304,6 +304,12 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x2000,
 #endif
+#ifdef USE_MOTOROLA_CODE
+    // BEGIN Motorola e11237 IKMMINTG-517 USB audio support from GB
+    AUDIO_DEVICE_OUT_EXT_USB_SPEAKER           = 0x2000,
+    AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER          = 0x4000,
+    // END IKMMINTG-517
+#endif
     AUDIO_DEVICE_OUT_FM                        = 0x2000,
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
     AUDIO_DEVICE_OUT_ANC_HEADSET               = 0x4000,
@@ -330,6 +336,12 @@ typedef enum {
                                  AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET |
 #ifdef OMAP_ENHANCEMENT
                                  AUDIO_DEVICE_OUT_FM_RADIO_TX |
+#endif
+#ifdef USE_MOTOROLA_CODE
+                                 // BEGIN Motorola e11237 IKMMINTG-517
+                                 AUDIO_DEVICE_OUT_EXT_USB_SPEAKER |
+                                 AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER |
+                                 // END IKMMINTG-517
 #endif
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
                                  AUDIO_DEVICE_OUT_FM |
@@ -372,6 +384,12 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000000,
 #endif
+#ifdef USE_MOTOROLA_CODE
+    // BEGIN Motorola e11237 IKMMINTG-261 USB audio support
+    AUDIO_DEVICE_IN_EXT_USB_MIC           = 0x1000000,
+    AUDIO_DEVICE_IN_DOCK_USB_MIC          = 0x2000000,
+    // END IKMMINTG-261
+#endif
 #endif
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
 
@@ -385,6 +403,12 @@ typedef enum {
                                AUDIO_DEVICE_IN_BACK_MIC |
 #ifdef OMAP_ENHANCEMENT
                                AUDIO_DEVICE_IN_FM_RADIO_RX |
+#endif
+#ifdef USE_MOTOROLA_CODE
+                               // BEGIN Motorola e11237 IKMMINTG-261
+                               AUDIO_DEVICE_IN_EXT_USB_MIC |
+                               AUDIO_DEVICE_IN_DOCK_USB_MIC |
+                               // END IKMMINTG-261
 #endif
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
                                AUDIO_DEVICE_IN_ANC_HEADSET |

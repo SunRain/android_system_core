@@ -79,7 +79,7 @@ static unsigned revision = 0;
 static char qemu[32];
 #ifdef USE_MOTOROLA_CODE
 static char usbmode[32];
-static char memsize[32];
+static char msn[32];
 #endif
 
 static struct action *cur_action = NULL;
@@ -241,6 +241,16 @@ void service_start(struct service *svc, const char *dynamic_args)
             }
         }
 
+#ifdef USE_MOTOROLA_CODE
+        if (svc->allowrtprio == 1) {
+            struct rlimit limit;
+
+            limit.rlim_cur = 1;
+            limit.rlim_max = 1;
+            setrlimit(RLIMIT_RTPRIO, &limit);
+        }
+#endif
+
         if (needs_console) {
             setsid();
             open_console();
@@ -347,16 +357,6 @@ static void service_stop_or_reset(struct service *svc, int how)
     }
 }
 
-#ifdef USE_MOTOROLA_CODE
-void device_changed(const char *name, int is_add)
-{
-    if (device_triggers_enabled) {
-        queue_device_triggers(name, is_add);
-	execute_one_command();
-    }
-}
-#endif
-
 void service_reset(struct service *svc)
 {
     service_stop_or_reset(svc, SVC_RESET);
@@ -377,6 +377,16 @@ void service_restart(struct service *svc)
         service_start(svc, NULL);
     } /* else: Service is restarting anyways. */
 }
+
+#ifdef USE_MOTOROLA_CODE
+void device_changed(const char *name, int is_add)
+{
+    if (device_triggers_enabled) {
+        queue_device_triggers(name, is_add);
+	execute_one_command();
+    }
+}
+#endif
 
 void property_changed(const char *name, const char *value)
 {
@@ -468,6 +478,43 @@ void handle_control_message(const char *msg, const char *arg)
     }
 }
 
+#ifdef USE_MOTOROLA_CODE
+static void get_mot_bootmode()
+{
+    char data[1024], bootreason[32];
+    int fd, n;
+    char *x, *pwrup_rsn;
+
+    memset(bootreason, 0, 32);
+
+    fd = open("/proc/bootinfo", O_RDONLY);
+    if (fd < 0) return 0;
+
+    n = read(fd, data, 1023);
+    close(fd);
+    if (n < 0) return 0;
+
+    data[n] = '\0';
+
+    pwrup_rsn = strstr(data, "POWERUPREASON");
+    if (pwrup_rsn) {
+        x = strstr(pwrup_rsn, ": ");
+        if (x) {
+            x += 2;
+            n = 0;
+            while (*x && !isspace(*x)) {
+                bootreason[n++] = *x;
+                x++;
+                if (n == 31) break;
+            }
+            bootreason[n] = '\0';
+        }
+    }
+    if (!strcmp(bootreason, "0x00000100"))
+        strlcpy(bootmode, "charger", sizeof(bootmode));
+}
+#endif
+
 static void import_kernel_nv(char *name, int in_qemu)
 {
     char *value = strchr(name, '=');
@@ -501,6 +548,10 @@ static void import_kernel_nv(char *name, int in_qemu)
             strlcpy(bootloader, value, sizeof(bootloader));
         } else if (!strcmp(name,"androidboot.hardware")) {
             strlcpy(hardware, value, sizeof(hardware));
+#ifdef USE_MOTOROLA_CODE
+        } else if (!strcmp(name,"androidboot.msn")) {
+            strlcpy(msn, value, sizeof(msn));
+#endif
         } else if (!strcmp(name,"androidboot.emmc")) {
             if (!strcmp(value,"true")) {
                 emmc_boot = 1;
@@ -508,11 +559,7 @@ static void import_kernel_nv(char *name, int in_qemu)
         } else if (!strcmp(name,"androidboot.modelno")) {
             strlcpy(modelno, value, sizeof(modelno));
         }
-#ifdef USE_MOTOROLA_CODE
-        } else if (!strcmp(name,"mem")) {
-            strlcpy(memsize, value, sizeof(memsize));
-#endif
-     } else {
+    } else {
         /* in the emulator, export any kernel option with the
          * ro.kernel. prefix */
         char  buff[32];
@@ -606,7 +653,11 @@ static int property_init_action(int nargs, char **args)
     bool load_defaults = true;
 
     INFO("property init\n");
+#ifdef USE_MOTOROLA_CODE
+    if (!strcmp(bootmode, "charger"))
+#else
     if (charging_mode)
+#endif
         load_defaults = false;
     property_init(load_defaults);
     return 0;
@@ -702,10 +753,8 @@ static int set_init_properties_action(int nargs, char **args)
     property_set("ro.emmc",emmc_boot ? "1" : "0");
 
 #ifdef USE_MOTOROLA_CODE
-    if(strstr(memsize, "512M"))
-        property_set("ro.kernel.memsize", "512M");
-    else
-        property_set("ro.kernel.memsize", "1024M");
+    if (msn[0])
+        property_set("ro.msn", msn);
 #endif
 
     return 0;
@@ -777,10 +826,6 @@ int main(int argc, char **argv)
     int property_set_fd_init = 0;
     int signal_fd_init = 0;
     int keychord_fd_init = 0;
-#ifdef USE_MOTOROLA_CODE
-    struct rlimit rlim;
-    struct rlimit rlim_new;
-#endif
 
     if (!strcmp(basename(argv[0]), "ueventd"))
         return ueventd_main(argc, argv);
@@ -822,7 +867,6 @@ int main(int argc, char **argv)
 #endif
 
     INFO("reading config file\n");
-
     if (!charging_mode_booting())
        init_parse_config_file("/init.rc");
     else
@@ -830,6 +874,9 @@ int main(int argc, char **argv)
 
     /* pull the kernel commandline and ramdisk properties file in */
     import_kernel_cmdline(0, import_kernel_nv);
+#ifdef USE_MOTOROLA_CODE
+    get_mot_bootmode();
+#endif
     /* don't expose the raw commandline to nonpriv processes */
     chmod("/proc/cmdline", 0440);
 
@@ -863,17 +910,6 @@ int main(int argc, char **argv)
     queue_builtin_action(console_init_action, "console_init");
     queue_builtin_action(set_init_properties_action, "set_init_properties");
 
-#ifdef USE_MOTOROLA_CODE
-    /* Hongmei : Google is simplying init code, should we add this kind of code here?*/
-    if (getrlimit(RLIMIT_CORE, &rlim)==0) {
-            rlim_new.rlim_cur = rlim_new.rlim_max = RLIM_INFINITY;
-            if (setrlimit(RLIMIT_CORE, &rlim_new)!=0) {
-                 /* failed. try raising just to the old max */
-                 rlim_new.rlim_cur = rlim_new.rlim_max =  rlim.rlim_max;
-                 (void) setrlimit(RLIMIT_CORE, &rlim_new);
-             }
-    }
-#endif
     /* execute all the boot actions to get us started */
     action_for_each_trigger("init", action_add_queue_tail);
 
@@ -893,7 +929,11 @@ int main(int argc, char **argv)
     queue_builtin_action(signal_init_action, "signal_init");
     queue_builtin_action(check_startup_action, "check_startup");
 
+#ifdef USE_MOTOROLA_CODE
+    if (!strcmp(bootmode, "charger")) {
+#else
     if (charging_mode) {
+#endif
         action_for_each_trigger("charger", action_add_queue_tail);
     } else {
         action_for_each_trigger("early-boot", action_add_queue_tail);

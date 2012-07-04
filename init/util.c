@@ -362,6 +362,12 @@ void get_hardware_name(char *hardware, unsigned int *revision)
     int fd, n;
     char *x, *hw, *rev;
 
+#ifdef USE_MOTOROLA_CODE
+    /* Hardware string was provided on kernel command line */
+    if (hardware[0])
+        return;
+#endif
+
     fd = open("/proc/cpuinfo", O_RDONLY);
     if (fd < 0) return;
 
@@ -373,8 +379,10 @@ void get_hardware_name(char *hardware, unsigned int *revision)
     hw = strstr(data, "\nHardware");
     rev = strstr(data, "\nRevision");
 
+#ifndef USE_MOTOROLA_CODE
     /* Hardware string was provided on kernel command line */
     if (!hardware[0]) {
+#endif
         if (hw) {
             x = strstr(hw, ": ");
             if (x) {
@@ -389,7 +397,9 @@ void get_hardware_name(char *hardware, unsigned int *revision)
                 hardware[n] = 0;
             }
         }
+#ifndef USE_MOTOROLA_CODE
     }
+#endif
 
     if (rev) {
         x = strstr(rev, ": ");

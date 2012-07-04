@@ -211,6 +211,10 @@ int get_sched_policy(int tid, SchedPolicy *policy)
             *policy = SP_FOREGROUND;
         else if (rc == SCHED_BATCH)
             *policy = SP_BACKGROUND;
+#ifdef USE_MOTOROLA_CODE
+        else if (rc == SCHED_RR)
+            *policy = SP_REALTIME;
+#endif
         else {
             errno = ERANGE;
             return -1;
@@ -250,24 +254,48 @@ int set_sched_policy(int tid, SchedPolicy policy)
         SLOGD("vvv tid %d (%s)", tid, thread_name);
     } else if (policy == SP_FOREGROUND) {
         SLOGD("^^^ tid %d (%s)", tid, thread_name);
+#ifdef USE_MOTOROLA_CODE
+    } else if (policy == SP_REALTIME) {
+        SLOGD("!!! tid %d (%s)", tid, thread_name);
+#endif
     } else {
         SLOGD("??? tid %d (%s)", tid, thread_name);
     }
 #endif
-
+#ifdef USE_MOTOROLA_CODE
+    if (__sys_supports_schedgroups &&
+/* Schedule groups are not supported for RT processes. */
+        policy != SP_REALTIME) {
+#else
     if (__sys_supports_schedgroups) {
+#endif
         if (add_tid_to_cgroup(tid, policy)) {
             if (errno != ESRCH && errno != ENOENT)
                 return -errno;
         }
     } else {
         struct sched_param param;
+#ifdef USE_MOTOROLA_CODE
+/* Allow the RT policy at the lowest priority. */
+        int posix_policy = SCHED_NORMAL;
 
+        param.sched_priority = 0;
+        if (policy == SP_BACKGROUND) {
+            posix_policy = SCHED_BATCH;
+        } else if (policy == SP_REALTIME) {
+            posix_policy = SCHED_RR;
+            param.sched_priority = 1; /* lowest RT priority */
+        }
+
+        if (sched_setscheduler(tid, posix_policy, &param) < 0)
+            SLOGE("sched_setscheduler failed: tid %d, errno=%d", tid, errno);
+#else
         param.sched_priority = 0;
         sched_setscheduler(tid,
                            (policy == SP_BACKGROUND) ?
                             SCHED_BATCH : SCHED_NORMAL,
                            &param);
+#endif
     }
 
     return 0;

@@ -71,11 +71,29 @@ static void *contiguous_mspace_morecore(mstate0 m, ssize_t nb);
  * but we include it to be consistent with the
  * rest of the mspace_*() functions.
  */
+#ifdef USE_MOTOROLA_CODE
+size_t mspace_usable_size(mspace msp, const void* mem) {
+  mstate fm = (mstate)msp;
+  if (!ok_magic(fm)) {
+    USAGE_ERROR_ACTION(fm, fm);
+    return 0;
+  }
+  if (mem != 0) {
+    const mchunkptr p = mem2chunk(mem);
+    if (!PREACTION(fm)) {
+      size_t size = 0;
+      if (cinuse(p))
+        size = chunksize(p) - overhead_for(p);
+      POSTACTION(fm);
+      return size;
+    }
+#else
 size_t mspace_usable_size(mspace _unused, const void* mem) {
   if (mem != 0) {
     const mchunkptr p = mem2chunk(mem);
     if (cinuse(p))
       return chunksize(p) - overhead_for(p);
+#endif
   }
   return 0;
 }

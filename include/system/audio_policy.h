@@ -92,7 +92,11 @@ static inline bool audio_is_low_visibility(audio_stream_type_t stream)
 {
     switch (stream) {
     case AUDIO_STREAM_SYSTEM:
+#ifndef USE_MOTOROLA_CODE
+    // BEGIN Motorola, e11237, IKMAP-4041, "NOTIFICATION" can't be low visibility
     case AUDIO_STREAM_NOTIFICATION:
+   // END IKMAP-4041
+#endif
     case AUDIO_STREAM_RING:
         return true;
     default:

@@ -82,6 +82,9 @@ struct {
     { "net.dns",          AID_RADIO,    0 },
 #ifdef USE_MOTOROLA_USERS
     { "net.dns",          AID_DHCP,     0 },
+    { "net.dns",          AID_VPN,      0 },
+    { "net.vpnclient",    AID_VPN,      0 },
+    { "net.dnschange",    AID_VPN,      0 },
     { "serialno",         AID_RADIO,    0 },
     { "radio.",           AID_RADIO,    0 },
 #endif
@@ -107,24 +110,23 @@ struct {
     { "persist.service.", AID_SYSTEM,   0 },
     { "persist.security.",AID_SYSTEM,   0 },
 #ifdef USE_MOTOROLA_USERS
-    // Motorola, w18335, 12-May-2011, IKTCMD-212
+    { "log.",             AID_SHELL,    AID_LOG },
+    { "persist.log.",     AID_SHELL,    AID_LOG },
+    { "persist.tcmd.", AID_MOT_TCMD,   0 },
     { "tcmd.",            AID_MOT_TCMD, AID_MOT_WHISPER },
     { "persist.mot.proximity.", AID_RADIO, 0},
     { "mot.backup_restore.",AID_MOT_TCMD, 0},
     { "mot.",             AID_MOT_TCMD, 0 },
-/* BEGIN Motorola, cjg040 */
     { "sys.",             AID_MOT_OSH,  0 },
     { "hw.",              AID_MOT_OSH,  0 },
-/* END Motorola */
-    // Motorola, a22976, 20-Oct-2010, IKSTABLETWOV-3218
     { "cdma.nbpcd.supported", AID_RADIO, AID_RADIO },
-// BEGIN Motorola, IKSTABLE6-5050
-    { "vzw.inactivetimer",   AID_RADIO,    0 },
-    { "persist.ril",         AID_RADIO,    0 },
-    { "persist.lte",         AID_RADIO,    0 },
-// END Motorola, IKSTABLE6-5050
-    // Motorola, vrwd38, IKSTABLEFOURV-3408
     { "hw.",              AID_MOT_WHISPER, 0 },
+    { "lte.default.protocol",      AID_RADIO,    0 },
+    { "lte.ignoredns",             AID_RADIO,    0 },
+    { "vzw.inactivetimer",         AID_RADIO,    0 },
+    { "android.telephony.apn-restore", AID_RADIO,    0 },
+    { "hw.",              AID_MEDIA,   0 },
+    { "persist.ril.event.report", AID_RADIO, 0 },
 #endif
     { "net.pdp0",         AID_RADIO,    AID_RADIO },
     { "net.pdp1",         AID_RADIO,    AID_RADIO },
@@ -152,12 +154,15 @@ struct {
 #ifdef USE_MOTOROLA_USERS
     { "hciattach", AID_MOT_TCMD, AID_MOT_TCMD },
     { "bluetoothd",AID_MOT_TCMD, AID_MOT_TCMD },
+    { "bt_start", AID_MOT_TCMD, AID_MOT_TCMD },
+    { "bt_stop", AID_MOT_TCMD, AID_MOT_TCMD },
     { "whisperd", AID_MOT_TCMD, AID_MOT_TCMD },
     { "gadget-lte-modem", AID_RADIO, AID_RADIO },
     { "gadget-qbp-modem", AID_RADIO, AID_RADIO },
     { "gadget-qbp-diag", AID_RADIO, AID_RADIO },
     { "ftmipcd", AID_RADIO, AID_RADIO },
     { "mdm_usb_suspend", AID_RADIO, AID_RADIO },
+    { "nav",AID_MOT_TCMD, AID_MOT_TCMD },
 #endif
     { "ril-daemon",AID_RADIO, AID_RADIO },
     { "rawip_vsnet1",AID_RADIO, AID_RADIO },
@@ -211,8 +216,7 @@ out:
 }
 
 #ifdef USE_MOTOROLA_CODE
-/* BEGIN MOT IKSTABLEFIVE-7903, XDTQ47, 13-May-2011
- * PA_COUNT_MAX formula:
+/* PA_COUNT_MAX formula:
  * PA_COUNT_MAX * 128 + PA_COUNT_MAX * 4 + 32 + 4 <= Allocation memory
  * Where:
  *     Allocate memory = 17 * 4096 = 69632 bytes
@@ -226,7 +230,6 @@ out:
  */
 #define PA_INFO_START  2144
 #define PA_SIZE        69632
-/* END MOT IKSTABLEFIVE-7903 */
 #else
 /* (8 header words + 372 toc words) = 1520 bytes */
 /* 1536 bytes header and toc + 372 prop_infos @ 128 bytes = 49152 bytes */

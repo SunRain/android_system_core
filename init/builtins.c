@@ -70,7 +70,6 @@ static int write_file(const char *path, const char *value)
     }
 }
 
-
 static int _chown(const char *path, unsigned int uid, unsigned int gid)
 {
     int ret;
@@ -303,13 +302,6 @@ int do_insmod(int nargs, char **args)
     return do_insmod_inner(nargs, args, size);
 }
 
-#ifdef USE_MOTOROLA_CODE
-int do_import(int nargs, char **args)
-{
-    return init_parse_config_file(args[1]);
-}
-#endif
-
 int do_log(int nargs, char **args)
 {
     char* par[nargs+3];
@@ -376,9 +368,6 @@ static struct {
     const char *name;
     unsigned flag;
 } mount_flags[] = {
-#ifdef USE_MOTOROLA_CODE
-    { "move",       MS_MOVE },
-#endif
     { "noatime",    MS_NOATIME },
     { "noexec",     MS_NOEXEC },
     { "nosuid",     MS_NOSUID },

@@ -336,6 +336,16 @@ void dump_registers(int tfd, int pid, bool at_fault)
 {
     struct pt_regs r;
     bool only_in_tombstone = !at_fault;
+#ifdef USE_MOTOROLA_CODE
+    unsigned long   tp_value;
+
+    if(ptrace(PTRACE_GET_THREAD_AREA, pid, 0, &tp_value)) {
+        _LOG(tfd, only_in_tombstone,
+             "cannot get TLS: %s\n", strerror(errno));
+    } else {
+        _LOG(tfd, only_in_tombstone, "tls: %08lx\n\n", tp_value);
+    }
+#endif
 
     if(ptrace(PTRACE_GETREGS, pid, 0, &r)) {
         _LOG(tfd, only_in_tombstone,

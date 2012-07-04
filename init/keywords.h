@@ -11,9 +11,6 @@ int do_export(int nargs, char **args);
 int do_hostname(int nargs, char **args);
 int do_ifup(int nargs, char **args);
 int do_insmod(int nargs, char **args);
-#ifdef USE_MOTOROLA_CODE
-int do_import(int nargs, char **args);
-#endif
 int do_log(int nargs, char **args);
 int do_mkdir(int nargs, char **args);
 int do_mount(int nargs, char **args);
@@ -25,6 +22,9 @@ int do_setprop(int nargs, char **args);
 int do_setrlimit(int nargs, char **args);
 int do_start(int nargs, char **args);
 int do_stop(int nargs, char **args);
+#ifdef USE_MOTOROLA_CODE
+int do_term(int nargs, char **args);
+#endif
 int do_trigger(int nargs, char **args);
 int do_symlink(int nargs, char **args);
 int do_sysclktz(int nargs, char **args);
@@ -57,11 +57,7 @@ enum {
     KEYWORD(hostname,    COMMAND, 1, do_hostname)
     KEYWORD(ifup,        COMMAND, 1, do_ifup)
     KEYWORD(insmod,      COMMAND, 1, do_insmod)
-#ifdef USE_MOTOROLA_CODE
-    KEYWORD(import,      COMMAND, 1, do_import)
-#else
     KEYWORD(import,      SECTION, 1, 0)
-#endif
     KEYWORD(keycodes,    OPTION,  0, 0)
     KEYWORD(log,         COMMAND, 1, do_log)
     KEYWORD(mkdir,       COMMAND, 1, do_mkdir)
@@ -92,6 +88,9 @@ enum {
     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
     KEYWORD(ioprio,      OPTION,  0, 0)
+#ifdef USE_MOTOROLA_CODE
+    KEYWORD(allowrtprio, OPTION,  0, 0)
+#endif
 #ifdef __MAKE_KEYWORD_ENUM__
     KEYWORD_COUNT,
 };

@@ -24,6 +24,9 @@ extern "C" {
 typedef enum {
     SP_BACKGROUND = 0,
     SP_FOREGROUND = 1,
+#ifdef USE_MOTOROLA_CODE
+    SP_REALTIME = 2,
+#endif
 } SchedPolicy;
 
 extern int set_sched_policy(int tid, SchedPolicy policy);

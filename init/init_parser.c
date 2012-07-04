@@ -77,6 +77,11 @@ struct {
 int lookup_keyword(const char *s)
 {
     switch (*s++) {
+#ifdef USE_MOTOROLA_CODE
+    case 'a':
+        if (!strcmp(s, "llowrtprio")) return K_allowrtprio;
+        break;
+#endif
     case 'c':
     if (!strcmp(s, "opy")) return K_copy;
         if (!strcmp(s, "apability")) return K_capability;
@@ -410,7 +415,11 @@ void queue_property_triggers(const char *name, const char *value)
     }
 }
 
+#ifdef USE_MOTOROLA_CODE
+void queue_all_property_triggers(void)
+#else
 void queue_all_property_triggers()
+#endif
 {
     struct listnode *node;
     struct action *act;
@@ -529,6 +538,9 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
     }
 
     svc->ioprio_class = IoSchedClass_NONE;
+#ifdef USE_MOTOROLA_CODE
+    svc->allowrtprio = 0;
+#endif
 
     kw = lookup_keyword(args[0]);
     switch (kw) {
@@ -600,6 +612,11 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
             }
         }
         break;
+#ifdef USE_MOTOROLA_CODE
+    case K_allowrtprio:
+        svc->allowrtprio = 1;
+        break;
+#endif
     case K_oneshot:
         svc->flags |= SVC_ONESHOT;
         break;
@@ -708,6 +725,9 @@ static void parse_line_action(struct parse_state* state, int nargs, char **args)
     struct action *act = state->context;
     int (*func)(int nargs, char **args);
     int kw, n;
+#ifdef USE_MOTOROLA_CODE
+    int alloc_size = 0;
+#endif
 
     if (nargs == 0) {
         return;
@@ -725,7 +745,18 @@ static void parse_line_action(struct parse_state* state, int nargs, char **args)
             n > 2 ? "arguments" : "argument");
         return;
     }
+#ifdef USE_MOTOROLA_CODE
+    alloc_size = sizeof(*cmd) + sizeof(char*) * (nargs + 1);
+    cmd = malloc(alloc_size);
+    if (!cmd) {
+        parse_error(state, "malloc failed\n");
+        return;
+    }
+
+    memset((char *)cmd, 0, alloc_size);
+#else
     cmd = malloc(sizeof(*cmd) + sizeof(char*) * nargs);
+#endif
     cmd->func = kw_func(kw);
     cmd->nargs = nargs;
     memcpy(cmd->args, args, sizeof(char*) * nargs);

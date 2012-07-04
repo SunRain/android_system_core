@@ -64,6 +64,13 @@ int SocketClient::sendMsg(int code, const char *msg, bool addErrno) {
 }
 
 int SocketClient::sendMsg(const char *msg) {
+#ifdef USE_MOTOROLA_CODE
+    if (mSocket < 0) {
+        errno = EHOSTUNREACH;
+        return -1;
+    }
+#endif
+
     // Send the message including null character
     if (sendData(msg, strlen(msg) + 1) != 0) {
         SLOGW("Unable to send msg '%s'", msg);
@@ -77,10 +84,12 @@ int SocketClient::sendData(const void* data, int len) {
     const char *p = (const char*) data;
     int brtw = len;
 
+#ifndef USE_MOTOROLA_CODE
     if (mSocket < 0) {
         errno = EHOSTUNREACH;
         return -1;
     }
+#endif
 
     if (len == 0) {
         return 0;

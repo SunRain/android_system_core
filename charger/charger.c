@@ -469,6 +469,10 @@ static void process_ps_uevent(struct charger *charger, struct uevent *uevent)
         if (!supply) {
             LOGE("power supply '%s' not found ('%s' %d)\n",
                  uevent->ps_name, ps_type, online);
+#ifdef USE_MOTOROLA_CODE
+            return;
+#endif
+
         }
     } else {
         return;

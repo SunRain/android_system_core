@@ -229,6 +229,32 @@ int dhcp_do_request(const char *interface,
     //END MOT ICS UPMERGE
 #endif
 
+#ifdef USE_MOTOROLA_CODE
+    /* Start the daemon and wait until it's ready */
+    if (property_get(HOSTNAME_PROP_NAME, prop_value, NULL) && (prop_value[0] != '\0'))
+        snprintf(daemon_cmd, sizeof(daemon_cmd), "%s_%s:-h %s %s %s", DAEMON_NAME, daemon_suffix,
+                 prop_value, dhcp_param, interface);
+    else
+        snprintf(daemon_cmd, sizeof(daemon_cmd), "%s_%s:%s %s", DAEMON_NAME, daemon_suffix, dhcp_param, interface);
+    memset(prop_value, '\0', PROPERTY_VALUE_MAX);
+    property_set(ctrl_prop, daemon_cmd);
+    if (wait_for_property(daemon_prop_name, desired_status, 10) < 0) {
+        snprintf(errmsg, sizeof(errmsg), "%s", "Timed out waiting for dhcpcd to start");
+        return -1;
+    }
+
+    /* Wait for the daemon to return a result */
+    if (wait_for_property(result_prop_name, NULL, wait_time) < 0) {
+        snprintf(errmsg, sizeof(errmsg), "%s", "Timed out waiting for DHCP to finish");
+        return -1;
+    }
+
+    if (!property_get(result_prop_name, prop_value, NULL)) {
+        /* shouldn't ever happen, given the success of wait_for_property() */
+        snprintf(errmsg, sizeof(errmsg), "%s", "DHCP result property was not set");
+        return -1;
+    }
+#else
     /* Start the daemon and wait until it's ready */
     if (property_get(HOSTNAME_PROP_NAME, prop_value, NULL) && (prop_value[0] != '\0'))
         snprintf(daemon_cmd, sizeof(daemon_cmd), "%s_%s:-h %s %s", DAEMON_NAME, daemon_suffix,
@@ -253,6 +279,7 @@ int dhcp_do_request(const char *interface,
         snprintf(errmsg, sizeof(errmsg), "%s", "DHCP result property was not set");
         return -1;
     }
+#endif
 
 #ifdef USE_MOTOROLA_CODE
     //BEGIN MOT ICS UPMERGE, w20079, Nov 22, 2011

@@ -302,7 +302,7 @@ typedef enum {
     AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET         = 0x800,
     AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET         = 0x1000,
 #ifdef OMAP_ENHANCEMENT
-    AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x2000,
+    AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x6000,
 #endif
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-517 USB audio support from GB
@@ -310,7 +310,7 @@ typedef enum {
     AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER          = 0x4000,
     // END IKMMINTG-517
 #endif
-    AUDIO_DEVICE_OUT_FM                        = 0x2000,
+    AUDIO_DEVICE_OUT_FM                        = 0x2001,
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
     AUDIO_DEVICE_OUT_ANC_HEADSET               = 0x4000,
     AUDIO_DEVICE_OUT_ANC_HEADPHONE             = 0x8000,
@@ -382,7 +382,7 @@ typedef enum {
     AUDIO_DEVICE_IN_VOICE_CALL            = 0x400000,
     AUDIO_DEVICE_IN_BACK_MIC              = 0x800000,
 #ifdef OMAP_ENHANCEMENT
-    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000000,
+    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000001,
 #endif
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-261 USB audio support

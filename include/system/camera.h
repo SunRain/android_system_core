@@ -93,7 +93,7 @@ enum {
 #ifdef USE_MOTOROLA_CODE
     CAMERA_MSG_ENV_DETECT = 0x8001,       // MOT IKHSS6-8697 w4779c - Motorola-specific camera interface
 #endif
-    CAMERA_MSG_STATS_DATA = 0x1000, // dataCallback
+    CAMERA_MSG_STATS_DATA = 0x1001, // dataCallback
     CAMERA_MSG_ALL_MSGS = 0xFFFF
 };
 

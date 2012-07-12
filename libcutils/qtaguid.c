@@ -99,7 +99,12 @@ static int write_param(const char *param_path, const char *value) {
 int qtaguid_tagSocket(int sockfd, int tag, uid_t uid) {
     char lineBuf[CTRL_MAX_INPUT_LEN];
     int res;
+#ifdef USE_MOTOROLA_CODE
+    /* Doing java-land a favor, enforcing "long" */
+    uint64_t kTag = ((uint64_t)tag << 32) & ~(1LLU<<63);
+#else
     uint64_t kTag = ((uint64_t)tag << 32);
+#endif
 
     pthread_once(&resTrackInitDone, qtaguid_resTrack);
 

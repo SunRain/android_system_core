@@ -79,6 +79,11 @@ struct {
 int lookup_keyword(const char *s)
 {
     switch (*s++) {
+#ifdef USE_MOTOROLA_CODE
+    case 'a':
+        if (!strcmp(s, "llowrtprio")) return K_allowrtprio;
+        break;
+#endif
     case 'c':
     if (!strcmp(s, "opy")) return K_copy;
         if (!strcmp(s, "apability")) return K_capability;
@@ -510,6 +515,48 @@ void action_for_each_trigger(const char *trigger,
         }
     }
 }
+#ifdef USE_MOTOROLA_CODE
+void queue_device_triggers(const char *name, int is_add)
+{
+    struct listnode *node;
+    struct action *act;
+    const char *trigger_names[] = { "device-removed-", "device-added-" };
+
+    list_for_each(node, &action_list) {
+        act = node_to_item(node, struct action, alist);
+        if (!strncmp(act->name, trigger_names[is_add],
+                     strlen(trigger_names[is_add]))) {
+            const char *devname = act->name + strlen(trigger_names[is_add]);
+
+            if (!strcmp(devname, name)) {
+                action_add_queue_tail(act);
+            }
+        }
+    }
+}
+
+void queue_all_device_triggers(void)
+{
+    struct listnode *node;
+    struct action *act;
+    const char *added = "device-added-";
+    struct stat devstat;
+
+    list_for_each(node, &action_list) {
+        act = node_to_item(node, struct action, alist);
+        if (!strncmp(act->name, added, strlen(added))) {
+            const char *devpath = act->name + strlen(added);
+            if (!stat(devpath, &devstat)) {
+                if (!((devstat.st_mode & S_IFMT) == S_IFREG ||
+                      (devstat.st_mode & S_IFMT) == S_IFDIR)) {
+                    ERROR("queuing %s\n", act->name);
+                    action_add_queue_tail(act);
+                }
+            }
+        }
+    }
+}
+#endif
 
 void queue_property_triggers(const char *name, const char *value)
 {
@@ -531,7 +578,11 @@ void queue_property_triggers(const char *name, const char *value)
     }
 }
 
+#ifdef USE_MOTOROLA_CODE
+void queue_all_property_triggers(void)
+#else
 void queue_all_property_triggers()
+#endif
 {
     struct listnode *node;
     struct action *act;
@@ -650,6 +701,9 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
     }
 
     svc->ioprio_class = IoSchedClass_NONE;
+#ifdef USE_MOTOROLA_CODE
+    svc->allowrtprio = 0;
+#endif
 
     kw = lookup_keyword(args[0]);
     switch (kw) {
@@ -721,6 +775,11 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
             }
         }
         break;
+#ifdef USE_MOTOROLA_CODE
+    case K_allowrtprio:
+        svc->allowrtprio = 1;
+        break;
+#endif
     case K_oneshot:
         svc->flags |= SVC_ONESHOT;
         break;
@@ -839,6 +898,9 @@ static void parse_line_action(struct parse_state* state, int nargs, char **args)
     struct action *act = state->context;
     int (*func)(int nargs, char **args);
     int kw, n;
+#ifdef USE_MOTOROLA_CODE
+    int alloc_size = 0;
+#endif
 
     if (nargs == 0) {
         return;

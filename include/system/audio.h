@@ -290,6 +290,12 @@ typedef enum {
     AUDIO_DEVICE_OUT_AUX_DIGITAL               = 0x400,
     AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET         = 0x800,
     AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET         = 0x1000,
+#ifdef USE_MOTOROLA_CODE
+    // BEGIN Motorola e11237 IKMMINTG-517 USB audio support from GB
+    AUDIO_DEVICE_OUT_EXT_USB_SPEAKER           = 0x2001,
+    AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER          = 0x4001,
+    // END IKMMINTG-517
+#endif
     AUDIO_DEVICE_OUT_USB_ACCESSORY             = 0x2000,
     AUDIO_DEVICE_OUT_USB_DEVICE                = 0x4000,
     AUDIO_DEVICE_OUT_DEFAULT                   = 0x8000,
@@ -306,6 +312,12 @@ typedef enum {
                                  AUDIO_DEVICE_OUT_AUX_DIGITAL |
                                  AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET |
                                  AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET |
+#ifdef USE_MOTOROLA_CODE
+                                 // BEGIN Motorola e11237 IKMMINTG-517
+                                 AUDIO_DEVICE_OUT_EXT_USB_SPEAKER |
+                                 AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER |
+                                 // END IKMMINTG-517
+#endif
                                  AUDIO_DEVICE_OUT_USB_ACCESSORY |
                                  AUDIO_DEVICE_OUT_USB_DEVICE |
                                  AUDIO_DEVICE_OUT_DEFAULT),
@@ -327,6 +339,12 @@ typedef enum {
     AUDIO_DEVICE_IN_AUX_DIGITAL           = 0x200000,
     AUDIO_DEVICE_IN_VOICE_CALL            = 0x400000,
     AUDIO_DEVICE_IN_BACK_MIC              = 0x800000,
+#ifdef USE_MOTOROLA_CODE
+    // BEGIN Motorola e11237 IKMMINTG-261 USB audio support
+    AUDIO_DEVICE_IN_EXT_USB_MIC           = 0x1000000,
+    AUDIO_DEVICE_IN_DOCK_USB_MIC          = 0x2000000,
+    // END IKMMINTG-261
+#endif
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
 
     AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
@@ -337,6 +355,12 @@ typedef enum {
                                AUDIO_DEVICE_IN_AUX_DIGITAL |
                                AUDIO_DEVICE_IN_VOICE_CALL |
                                AUDIO_DEVICE_IN_BACK_MIC |
+#ifdef USE_MOTOROLA_CODE
+                               // BEGIN Motorola e11237 IKMMINTG-261
+                               AUDIO_DEVICE_IN_EXT_USB_MIC |
+                               AUDIO_DEVICE_IN_DOCK_USB_MIC |
+                               // END IKMMINTG-261
+#endif
                                AUDIO_DEVICE_IN_DEFAULT),
     AUDIO_DEVICE_IN_ALL_SCO = AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET,
 } audio_devices_t;

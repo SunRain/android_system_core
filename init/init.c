@@ -64,12 +64,19 @@ struct selabel_handle *sehandle;
 #endif
 
 static int property_triggers_enabled = 0;
+#ifdef USE_MOTOROLA_CODE
+static int device_triggers_enabled = 0;
+#endif
 
 #if BOOTCHART
 static int   bootchart_count;
 #endif
 
 static char console[32];
+#ifdef USE_MOTOROLA_CODE
+static char usbmode[32];
+static char msn[32];
+#endif
 static char bootmode[32];
 static char hardware[32];
 static unsigned revision = 0;
@@ -280,6 +287,16 @@ void service_start(struct service *svc, const char *dynamic_args)
             }
         }
 
+#ifdef USE_MOTOROLA_CODE
+        if (svc->allowrtprio == 1) {
+            struct rlimit limit;
+
+            limit.rlim_cur = 1;
+            limit.rlim_max = 1;
+            setrlimit(RLIMIT_RTPRIO, &limit);
+        }
+#endif
+
         if (needs_console) {
             setsid();
             open_console();
@@ -408,6 +425,15 @@ void service_stop(struct service *svc)
 {
     service_stop_or_reset(svc, SVC_DISABLED);
 }
+#ifdef USE_MOTOROLA_CODE
+void device_changed(const char *name, int is_add)
+{
+    if (device_triggers_enabled) {
+        queue_device_triggers(name, is_add);
+	execute_one_command();
+    }
+}
+#endif
 
 void service_restart(struct service *svc)
 {
@@ -509,6 +535,43 @@ void handle_control_message(const char *msg, const char *arg)
         ERROR("unknown control msg '%s'\n", msg);
     }
 }
+
+#ifdef USE_MOTOROLA_CODE
+static void get_mot_bootmode()
+{
+    char data[1024], bootreason[32];
+    int fd, n;
+    char *x, *pwrup_rsn;
+
+    memset(bootreason, 0, 32);
+
+    fd = open("/proc/bootinfo", O_RDONLY);
+    if (fd < 0) return 0;
+
+    n = read(fd, data, 1023);
+    close(fd);
+    if (n < 0) return 0;
+
+    data[n] = '\0';
+
+    pwrup_rsn = strstr(data, "POWERUPREASON");
+    if (pwrup_rsn) {
+        x = strstr(pwrup_rsn, ": ");
+        if (x) {
+            x += 2;
+            n = 0;
+            while (*x && !isspace(*x)) {
+                bootreason[n++] = *x;
+                x++;
+                if (n == 31) break;
+            }
+            bootreason[n] = '\0';
+        }
+    }
+    if (!strcmp(bootreason, "0x00000100"))
+        strlcpy(bootmode, "charger", sizeof(bootmode));
+}
+#endif
 
 static struct command *get_first_command(struct action *act)
 {
@@ -707,6 +770,14 @@ static void export_kernel_boot_props(void)
         property_set("ro.factorytest", "2");
     else
         property_set("ro.factorytest", "0");
+#ifdef USE_MOTOROLA_CODE
+    if (!strcmp(usbmode,"debug"))
+        property_set("ro.usb_mode", "debug");
+    else
+        property_set("ro.usb_mode", "normal");
+    if (msn[0])
+        property_set("ro.msn", msn);
+#endif
 }
 
 static void process_kernel_cmdline(void)
@@ -974,6 +1045,12 @@ int main(int argc, char **argv)
             init_parse_config_file("/init.target.rc");
     }
 
+#ifdef USE_MOTOROLA_CODE
+    /* pull the kernel commandline and ramdisk properties file in */
+    import_kernel_cmdline(0, import_kernel_nv);
+    get_mot_bootmode();
+#endif
+
     action_for_each_trigger("early-init", action_add_queue_tail);
 
     queue_builtin_action(wait_for_coldboot_done_action, "wait_for_coldboot_done");
@@ -984,7 +1061,11 @@ int main(int argc, char **argv)
     action_for_each_trigger("init", action_add_queue_tail);
 
     /* skip mounting filesystems in charger mode */
+#ifdef USE_MOTOROLA_CODE
+    if (strcmp(bootmode, "charger") != 0) {
+#else
     if (!is_charger) {
+#endif
         action_for_each_trigger("early-fs", action_add_queue_tail);
     if(emmc_boot) {
         action_for_each_trigger("emmc-fs", action_add_queue_tail);
@@ -999,12 +1080,22 @@ int main(int argc, char **argv)
     queue_builtin_action(signal_init_action, "signal_init");
     queue_builtin_action(check_startup_action, "check_startup");
 
+#ifdef USE_MOTOROLA_CODE
+    if (!strcmp(bootmode, "charger")) {
+#else
     if (is_charger) {
+#endif
         action_for_each_trigger("charger", action_add_queue_tail);
     } else {
         action_for_each_trigger("early-boot", action_add_queue_tail);
         action_for_each_trigger("boot", action_add_queue_tail);
     }
+
+#ifdef USE_MOTOROLA_CODE
+    queue_all_device_triggers();
+    execute_one_command();
+    device_triggers_enabled = 1;
+#endif
 
         /* run all property triggers based on current state of the properties */
     queue_builtin_action(queue_property_triggers_action, "queue_property_triggers");

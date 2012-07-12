@@ -62,6 +62,22 @@ struct {
     unsigned int gid;
 } property_perms[] = {
     { "net.rmnet",        AID_RADIO,    0 },
+#ifdef USE_MOTOROLA_CODE
+    { "net.caif0.",       AID_RADIO,    0 },
+    { "net.usb0.",        AID_RADIO,    0 },
+    { "net.usb1.",        AID_RADIO,    0 },
+    { "net.qmi0.",        AID_RADIO,    0 },
+    { "net.qmi1.",        AID_RADIO,    0 },
+    { "net.qmi2.",        AID_RADIO,    0 },
+    { "net.gannet0.",     AID_RADIO,    0 },
+    { "net.rmnet0.",      AID_RADIO,    0 },
+    { "net.dns",          AID_DHCP,     0 },
+    { "net.dns",          AID_VPN,      0 },
+    { "net.vpnclient",    AID_VPN,      0 },
+    { "net.dnschange",    AID_VPN,      0 },
+    { "serialno",         AID_RADIO,    0 },
+    { "radio.",           AID_RADIO,    0 },
+#endif
     { "net.gprs.",        AID_RADIO,    0 },
     { "net.ppp",          AID_RADIO,    0 },
     { "net.qmi",          AID_RADIO,    0 },
@@ -92,6 +108,25 @@ struct {
     { "persist.service.", AID_RADIO,    0 },
     { "persist.security.",AID_SYSTEM,   0 },
     { "net.pdp",          AID_RADIO,    AID_RADIO },
+#ifdef USE_MOTOROLA_CODE
+    { "log.",             AID_SHELL,    AID_LOG },
+    { "persist.log.",     AID_SHELL,    AID_LOG },
+    { "persist.tcmd.",    AID_MOT_TCMD,   0 },
+    { "tcmd.",            AID_MOT_TCMD, AID_MOT_WHISPER },
+    { "persist.mot.proximity.", AID_RADIO, 0},
+    { "mot.backup_restore.",AID_MOT_TCMD, 0},
+    { "mot.",             AID_MOT_TCMD, 0 },
+    { "sys.",             AID_MOT_OSH,  0 },
+    { "hw.",              AID_MOT_OSH,  0 },
+    { "cdma.nbpcd.supported", AID_RADIO, AID_RADIO },
+    { "hw.",              AID_MOT_WHISPER, 0 },
+    { "lte.default.protocol", AID_RADIO,    0 },
+    { "lte.ignoredns",     AID_RADIO,    0 },
+    { "vzw.inactivetimer", AID_RADIO,    0 },
+    { "android.telephony.apn-restore", AID_RADIO,    0 },
+    { "hw.",              AID_MEDIA,   0 },
+    { "persist.ril.event.report", AID_RADIO, 0 },
+#endif
     { NULL, 0, 0 }
 };
 /* Avoid extending this array. Check device_perms.h */
@@ -109,6 +144,18 @@ struct {
 } control_perms[] = {
     { "dumpstate",AID_SHELL, AID_LOG },
     { "ril-daemon",AID_RADIO, AID_RADIO },
+#ifdef USE_MOTOROLA_CODE
+    { "hciattach", AID_MOT_TCMD, AID_MOT_TCMD },
+    { "bluetoothd",AID_MOT_TCMD, AID_MOT_TCMD },
+    { "bt_start", AID_MOT_TCMD, AID_MOT_TCMD },
+    { "bt_stop", AID_MOT_TCMD, AID_MOT_TCMD },
+    { "whisperd", AID_MOT_TCMD, AID_MOT_TCMD },
+    { "gadget-lte-modem", AID_RADIO, AID_RADIO },
+    { "gadget-qbp-modem", AID_RADIO, AID_RADIO },
+    { "gadget-qbp-diag", AID_RADIO, AID_RADIO },
+    { "ftmipcd", AID_RADIO, AID_RADIO },
+    { "mdm_usb_suspend", AID_RADIO, AID_RADIO },
+#endif
      {NULL, 0, 0 }
 };
 /* Avoid extending this array. Check device_perms.h */
@@ -157,12 +204,29 @@ out:
     return -1;
 }
 
+#ifdef USE_MOTOROLA_CODE
+/* PA_COUNT_MAX formula:
+ * PA_COUNT_MAX * 128 + PA_COUNT_MAX * 4 + 32 + 4 <= Allocation memory
+ * Where:
+ *     Allocate memory = 17 * 4096 = 69632 bytes
+ * PA_COUNT_MAX = 527
+ */
+#define PA_COUNT_MAX   527
+/* PA_INFO_START = 8 header words(32 bytes)
+ *               + 527 toc words(2108 bytes)
+ *               + 4 bytes
+ *               = 2144 bytes
+ */
+#define PA_INFO_START  2144
+#define PA_SIZE        69632
+#else
 /* (8 header words + 372 toc words) = 1520 bytes */
 /* 1536 bytes header and toc + 372 prop_infos @ 128 bytes = 49152 bytes */
 
 #define PA_COUNT_MAX  372
 #define PA_INFO_START 1536
 #define PA_SIZE       49152
+#endif
 
 static workspace pa_workspace;
 static prop_info *pa_info_array;

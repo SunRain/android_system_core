@@ -85,6 +85,13 @@ enum {
     // request FRAME and METADATA. Or the apps can request only FRAME or only
     // METADATA.
     CAMERA_MSG_PREVIEW_METADATA = 0x0400, // dataCallback
+#ifdef OMAP_ENHANCEMENT
+    CAMERA_MSG_COMPRESSED_BURST_IMAGE = 0x0800, //dataCallback
+#endif
+#ifdef USE_MOTOROLA_CODE
+    CAMERA_MSG_ENV_DETECT = 0x8001,       // MOT IKHSS6-8697 w4779c - Motorola-specific camera interface
+#endif
+
     // Notify on autofocus start and stop. This is useful in continuous
     // autofocus - FOCUS_MODE_CONTINUOUS_VIDEO and FOCUS_MODE_CONTINUOUS_PICTURE.
     CAMERA_MSG_FOCUS_MOVE = 0x0800,       // notifyCallback

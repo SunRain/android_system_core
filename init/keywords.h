@@ -96,6 +96,9 @@ enum {
     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
     KEYWORD(ioprio,      OPTION,  0, 0)
+#ifdef USE_MOTOROLA_CODE
+    KEYWORD(allowrtprio, OPTION,  0, 0)
+#endif
 #ifdef __MAKE_KEYWORD_ENUM__
     KEYWORD_COUNT,
 };

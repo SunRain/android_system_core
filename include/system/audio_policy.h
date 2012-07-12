@@ -30,6 +30,16 @@ __BEGIN_DECLS
  * frameworks/base/include/media/AudioSystem.h
  */
 
+#ifdef USE_MOTOROLA_CODE
+/* request to open a direct output with get_output() (by opposition to
+ * sharing an output with other AudioTracks)
+ */
+typedef enum {
+    AUDIO_POLICY_OUTPUT_FLAG_INDIRECT = 0x0,
+    AUDIO_POLICY_OUTPUT_FLAG_DIRECT = 0x1
+} audio_policy_output_flags_t;
+#endif
+
 /* device categories used for audio_policy->set_force_use() */
 typedef enum {
     AUDIO_POLICY_FORCE_NONE,
@@ -84,9 +94,13 @@ typedef enum {
 static inline bool audio_is_low_visibility(audio_stream_type_t stream)
 {
     switch (stream) {
+    // BEGIN Motorola, e11237, IKMAP-4041, "NOTIFICATION" can't be low visibility
     case AUDIO_STREAM_SYSTEM:
+#ifndef USE_MOTOROLA_CODE
     case AUDIO_STREAM_NOTIFICATION:
+#endif
     case AUDIO_STREAM_RING:
+   // END IKMAP-4041
         return true;
     default:
         return false;

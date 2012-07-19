@@ -1,16 +1,17 @@
 /*
  * Copyright 2008, The Android Open Source Project
+ * Copyright (C) 2011,2012 Code Aurora Forum. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
- * You may obtain a copy of the License at 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -816,11 +817,6 @@ ifc_configure(const char *ifname,
         ifc_close();
         return -1;
     }
-    if (ifc_create_default_route(ifname, gateway)) {
-        printerr("failed to set default route %s: %s\n", ipaddr_to_string(gateway), strerror(errno));
-        ifc_close();
-        return -1;
-    }
 
     ifc_close();
 
@@ -980,4 +976,22 @@ int ifc_add_route(const char *ifname, const char *dst, int prefix_length, const 
 int ifc_remove_route(const char *ifname, const char*dst, int prefix_length, const char *gw)
 {
     return ifc_act_on_route(SIOCDELRT, ifname, dst, prefix_length, gw);
+}
+
+int ifc_get_mtu(const char *name, int *mtuSz)
+{
+    struct ifreq ifr;
+    ifc_init_ifr(name, &ifr);
+
+    if (mtuSz != NULL) {
+        if(ioctl(ifc_ctl_sock, SIOCGIFMTU, &ifr) < 0) {
+            *mtuSz = 0;
+            return -2;
+        } else {
+            *mtuSz = ifr.ifr_mtu;
+            return 0;
+        }
+    }
+
+    return -1;
 }

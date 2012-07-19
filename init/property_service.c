@@ -127,6 +127,8 @@ struct {
     { "hw.",              AID_MEDIA,   0 },
     { "persist.ril.event.report", AID_RADIO, 0 },
 #endif
+    { "bluetooth.",       AID_SYSTEM,    0 },
+    { "wifi.",            AID_WIFI,     0 },
     { NULL, 0, 0 }
 };
 /* Avoid extending this array. Check device_perms.h */

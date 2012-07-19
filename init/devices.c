@@ -636,8 +636,8 @@ static void handle_block_device_event(struct uevent *uevent)
                 add_mmc_alias(basename, dev_alias);
         }
     }
-}
 #endif
+}
 
 static void handle_generic_device_event(struct uevent *uevent)
 {

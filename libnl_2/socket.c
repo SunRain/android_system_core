@@ -98,6 +98,15 @@ struct nl_sock *nl_socket_alloc_cb(struct nl_cb *cb)
 	return sk;
 }
 
+#ifdef OMAP_ENHANCEMENT
+/* Callback Handler */
+void nl_socket_set_cb(struct nl_sock *sk, struct nl_cb *cb)
+{
+	sk->s_cb = cb;
+	nl_cb_get(cb);
+}
+#endif
+
 /* Free a netlink socket. */
 void nl_socket_free(struct nl_sock *sk)
 {

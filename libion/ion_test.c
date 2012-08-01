@@ -21,6 +21,8 @@ int map_flags = MAP_SHARED;
 int alloc_flags = 0;
 int test = -1;
 size_t width = 1024*1024, height = 1024*1024;
+int fmt = TILER_PIXEL_FMT_32BIT;
+int tiler_test = 0;
 size_t stride;
 
 int _ion_alloc_test(int *fd, struct ion_handle **handle)
@@ -31,7 +33,11 @@ int _ion_alloc_test(int *fd, struct ion_handle **handle)
 	if (*fd < 0)
 		return *fd;
 
-	ret = ion_alloc(*fd, len, align, alloc_flags, handle);
+	if (tiler_test)
+		ret = ion_alloc_tiler(*fd, width, height, fmt, alloc_flags,
+					  handle, &stride);
+	else
+		ret = ion_alloc(*fd, len, align, alloc_flags, handle);
 
 	if (ret)
 		printf("%s failed: %s\n", __func__, strerror(ret));
@@ -55,6 +61,25 @@ void ion_alloc_test()
 	printf("ion alloc test: passed\n");
 }
 
+void _ion_tiler_map_test(unsigned char *ptr)
+{
+	size_t row, col;
+
+	for (row = 0; row < height; row++)
+		for (col = 0; col < width; col++) {
+			int i = (row * stride) + col;
+			ptr[i] = (unsigned char)i;
+		}
+	for (row = 0; row < height; row++)
+		for (col = 0; col < width; col++) {
+			int i = (row * stride) + col;
+			if (ptr[i] != (unsigned char)i)
+				printf("%s failed wrote %d read %d from mapped "
+					   "memory\n", __func__, i, ptr[i]);
+		}
+}
+
+
 void ion_map_test()
 {
 	int fd, map_fd, ret;
@@ -65,17 +90,23 @@ void ion_map_test()
 	if(_ion_alloc_test(&fd, &handle))
 		return;
 
+	if (tiler_test)
+		len = height * stride;
 	ret = ion_map(fd, handle, len, prot, map_flags, 0, &ptr, &map_fd);
 	if (ret)
 		return;
 
-	for (i = 0; i < len; i++) {
-		ptr[i] = (unsigned char)i;
+	if (tiler_test)
+		_ion_tiler_map_test(ptr);
+	else {
+		for (i = 0; i < len; i++) {
+			ptr[i] = (unsigned char)i;
+		}
+		for (i = 0; i < len; i++)
+			if (ptr[i] != (unsigned char)i)
+				printf("%s failed wrote %d read %d from mapped "
+					   "memory\n", __func__, i, ptr[i]);
 	}
-	for (i = 0; i < len; i++)
-		if (ptr[i] != (unsigned char)i)
-			printf("%s failed wrote %d read %d from mapped "
-			       "memory\n", __func__, i, ptr[i]);
 	/* clean up properly */
 	ret = ion_free(fd, handle);
 	ion_close(fd);
@@ -209,8 +240,10 @@ int main(int argc, char* argv[]) {
 			{"align", required_argument, 0, 'g'},
 			{"map_flags", required_argument, 0, 'z'},
 			{"prot", required_argument, 0, 'p'},
+			{"alloc_tiler", no_argument, 0, 't'},
 			{"width", required_argument, 0, 'w'},
 			{"height", required_argument, 0, 'h'},
+			{"fmt", required_argument, 0, 'r'},
 		};
 		int i = 0;
 		c = getopt_long(argc, argv, "af:h:l:mr:stw:", opts, &i);
@@ -251,6 +284,9 @@ int main(int argc, char* argv[]) {
 		case 'm':
 			test = MAP_TEST;
 			break;
+		case 'r':
+			fmt = atol(optarg);
+			break;
 		case 's':
 			test = SHARE_TEST;
 			break;
@@ -260,11 +296,14 @@ int main(int argc, char* argv[]) {
 		case 'h':
 			height = atol(optarg);
 			break;
+		case 't':
+			tiler_test = 1;
+			break;
 		}
 	}
-	printf("test %d, len %u, width %u, height %u align %u, "
+	printf("test %d, len %u, width %u, height %u fmt %u align %u, "
 		   "map_flags %d, prot %d, alloc_flags %d\n", test, len, width,
-		   height, align, map_flags, prot, alloc_flags);
+		   height, fmt, align, map_flags, prot, alloc_flags);
 	switch (test) {
 		case ALLOC_TEST:
 			ion_alloc_test();

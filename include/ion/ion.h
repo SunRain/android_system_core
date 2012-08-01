@@ -22,6 +22,7 @@
 #define __SYS_CORE_ION_H
 
 #include <linux/ion.h>
+#include <linux/omap_ion.h>
 
 __BEGIN_DECLS
 
@@ -29,11 +30,19 @@ int ion_open();
 int ion_close(int fd);
 int ion_alloc(int fd, size_t len, size_t align, unsigned int flags,
               struct ion_handle **handle);
+int ion_alloc_tiler(int fd, size_t w, size_t h, int fmt, unsigned int flags,
+		    struct ion_handle **handle, size_t *stride);
 int ion_free(int fd, struct ion_handle *handle);
 int ion_map(int fd, struct ion_handle *handle, size_t length, int prot,
             int flags, off_t offset, unsigned char **ptr, int *map_fd);
 int ion_share(int fd, struct ion_handle *handle, int *share_fd);
 int ion_import(int fd, int share_fd, struct ion_handle **handle);
+int ion_map_cacheable(int fd, struct ion_handle *handle, size_t length,
+        int prot, int flags, off_t offset, unsigned char **ptr, int *map_fd);
+int ion_flush_cached(int fd, struct ion_handle *handle, size_t length,
+            unsigned char *ptr);
+int ion_inval_cached(int fd, struct ion_handle *handle, size_t length,
+            unsigned char *ptr);
 
 __END_DECLS
 

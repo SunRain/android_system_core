@@ -129,6 +129,7 @@ struct {
 #endif
     { "bluetooth.",       AID_SYSTEM,    0 },
     { "wifi.",            AID_WIFI,     0 },
+    { "service.bootanim.exit", AID_GRAPHICS, 0 },
     { NULL, 0, 0 }
 };
 /* Avoid extending this array. Check device_perms.h */

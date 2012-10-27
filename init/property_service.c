@@ -130,6 +130,9 @@ struct {
     { "bluetooth.",       AID_SYSTEM,    0 },
     { "wifi.",            AID_WIFI,     0 },
     { "service.bootanim.exit", AID_GRAPHICS, 0 },
+#ifdef PROPERTY_PERMS_APPEND
+PROPERTY_PERMS_APPEND
+#endif
     { NULL, 0, 0 }
 };
 /* Avoid extending this array. Check device_perms.h */
@@ -158,6 +161,9 @@ struct {
     { "gadget-qbp-diag", AID_RADIO, AID_RADIO },
     { "ftmipcd", AID_RADIO, AID_RADIO },
     { "mdm_usb_suspend", AID_RADIO, AID_RADIO },
+#endif
+#ifdef CONTROL_PERMS_APPEND
+CONTROL_PERMS_APPEND
 #endif
      {NULL, 0, 0 }
 };

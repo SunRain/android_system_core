@@ -74,9 +74,7 @@ struct svcenvinfo {
 #define SVC_RC_DISABLED 0x80  /* Remember if the disabled flag was set in the rc script */
 #define SVC_RESTART     0x100 /* Use to safely restart (stop, wait, start) a service */
 
-#ifdef USE_MOTOROLA_CODE
-#define NR_SVC_SUPP_GIDS 26    /* number of supplementary groups */
-#else
+#ifndef NR_SVC_SUPP_GIDS
 #define NR_SVC_SUPP_GIDS 12    /* twelve supplementary groups */
 #endif
 

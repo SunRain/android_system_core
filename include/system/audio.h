@@ -450,6 +450,7 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_IN_USB_HEADSET           = 0x10000000,
     AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x20000000,
+#endif    
 #if defined(STE_FM)
     AUDIO_DEVICE_IN_FM_RX                 = 0x1000000,
 #endif

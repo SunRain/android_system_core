@@ -70,7 +70,7 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_SOURCE_FM_RADIO_RX         = 8,
 #endif
-#ifdef QCOM_FM_ENABLED
+#if defined(QCOM_FM_ENABLED) || defined(STE_FM)
     AUDIO_SOURCE_FM_RX               = 8,
     AUDIO_SOURCE_FM_RX_A2DP          = 9,
 #endif
@@ -361,7 +361,7 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x20000000,
 #endif
-#ifdef QCOM_FM_ENABLED
+#if defined(QCOM_FM_ENABLED) || defined(STE_FM)
     AUDIO_DEVICE_OUT_FM                        = 0x8000,
     AUDIO_DEVICE_OUT_FM_TX                     = 0x10000,
 #endif
@@ -395,7 +395,7 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
                                  AUDIO_DEVICE_OUT_FM_RADIO_TX |
 #endif
-#ifdef QCOM_FM_ENABLED
+#if defined(QCOM_FM_ENABLED) || defined(STE_FM)
                                  AUDIO_DEVICE_OUT_FM |
                                  AUDIO_DEVICE_OUT_FM_TX |
 #endif
@@ -422,8 +422,12 @@ typedef enum {
     AUDIO_DEVICE_IN_AUX_DIGITAL           = 0x2000000,
     AUDIO_DEVICE_IN_VOICE_CALL            = 0x4000000,
     AUDIO_DEVICE_IN_BACK_MIC              = 0x8000000,
-#ifdef QCOM_FM_ENABLED
+#if defined(QCOM_FM_ENABLED)
     AUDIO_DEVICE_IN_FM_RX                 = 0x20000000,
+#elif defined(STE_FM)
+    AUDIO_DEVICE_IN_FM_RX                 = 0x1000000,
+#endif
+#if defined(QCOM_FM_ENABLED) || defined(STE_FM)
     AUDIO_DEVICE_IN_FM_RX_A2DP            = 0x40000000,
 #endif
     AUDIO_DEVICE_IN_PROXY                 = 0x80000000,
@@ -446,6 +450,8 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_IN_USB_HEADSET           = 0x10000000,
     AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x20000000,
+#if defined(STE_FM)
+    AUDIO_DEVICE_IN_FM_RX                 = 0x1000000,
 #endif
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
 #endif
@@ -468,7 +474,7 @@ typedef enum {
                                AUDIO_DEVICE_IN_USB_HEADSET |
                                AUDIO_DEVICE_IN_FM_RADIO_RX |
 #endif
-#ifdef QCOM_FM_ENABLED
+#if defined(QCOM_FM_ENABLED) || defined(STE_FM)
                                AUDIO_DEVICE_IN_FM_RX |
                                AUDIO_DEVICE_IN_FM_RX_A2DP |
 #endif
